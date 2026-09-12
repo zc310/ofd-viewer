@@ -1,0 +1,29 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "ofd-viewer",
+  "outputfilename": "ofd-viewer",
+  "frontend:install": "",
+  "frontend:build": "node build.mjs",
+  "frontend:dev:watcher": "node dev-server.mjs",
+  "frontend:dev:serverUrl": "http://localhost:5173",
+  "build:tags": "webkit2_41",
+  "author": {
+    "name": "zc310.tech",
+    "email": ""
+  },
+  "info": {
+    "companyName": "zc310.tech",
+    "productName": "OFD Viewer",
+    "productVersion": "0.1.0",
+    "comments": "A native Go OFD document viewer",
+    "fileAssociations": [
+      {
+        "ext": "ofd",
+        "name": "OFD",
+        "description": "OFD document",
+        "iconName": "appicon",
+        "role": "Viewer"
+      }
+    ]
+  }
+}

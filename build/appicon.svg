@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">OFD Viewer</title>
+  <desc id="desc">A folded document with a blue reading lens and orange focus mark.</desc>
+  <defs>
+    <linearGradient id="shell" x1="124" y1="70" x2="900" y2="960" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2b75b9"/>
+      <stop offset="1" stop-color="#12345f"/>
+    </linearGradient>
+    <linearGradient id="page" x1="250" y1="126" x2="764" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dce8f3"/>
+    </linearGradient>
+    <linearGradient id="lens" x1="350" y1="365" x2="678" y2="682" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1d5d98"/>
+      <stop offset="1" stop-color="#0c2e59"/>
+    </linearGradient>
+    <filter id="paper-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#071a34" flood-opacity=".38"/>
+    </filter>
+    <filter id="lens-shadow" x="-40%" y="-40%" width="190%" height="190%">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#071a34" flood-opacity=".35"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="226" fill="url(#shell)"/>
+  <path d="M96 738c148 119 310 172 487 172 144 0 265-34 345-95v111c0 55-45 98-100 98H196c-55 0-100-43-100-98V738Z" fill="#071c39" opacity=".28"/>
+
+  <g filter="url(#paper-shadow)">
+    <path d="M256 112h320l192 192v548c0 42-34 76-76 76H256c-42 0-76-34-76-76V188c0-42 34-76 76-76Z" fill="url(#page)"/>
+    <path d="M576 112v142c0 28 22 50 50 50h142L576 112Z" fill="#b6cbe0"/>
+    <path d="M576 112v142c0 28 22 50 50 50h142" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+  </g>
+
+  <path d="M286 348h176M286 388h122" fill="none" stroke="#9ab4cc" stroke-linecap="round" stroke-width="18"/>
+
+  <g filter="url(#lens-shadow)">
+    <circle cx="500" cy="520" r="188" fill="url(#lens)" stroke="#ffffff" stroke-width="18"/>
+    <circle cx="500" cy="520" r="132" fill="#0b274d" stroke="#6d9dc9" stroke-width="8"/>
+    <path d="M422 525c24-34 50-51 78-51 28 0 54 17 78 51-24 34-50 51-78 51-28 0-54-17-78-51Z" fill="none" stroke="#dceeff" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="500" cy="525" r="25" fill="#f28a55"/>
+    <path d="m634 654 92 92" fill="none" stroke="#173d6d" stroke-width="54" stroke-linecap="round"/>
+    <path d="m634 654 92 92" fill="none" stroke="#f28a55" stroke-width="27" stroke-linecap="round"/>
+  </g>
+
+  <circle cx="760" cy="258" r="38" fill="#f28a55"/>
+  <path d="M760 237v42M739 258h42" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+</svg>

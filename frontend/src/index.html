@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e5e9ef" />
+    <title>OFD Viewer</title>
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body>
+    <div id="app">
+      <a class="skip-link" href="#viewer">跳到阅读区</a>
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">O</span>
+          <div>
+            <strong>OFD Viewer</strong>
+            <span>native rendering desk</span>
+          </div>
+        </div>
+        <div class="document-summary">
+          <span id="document-name">未打开文档</span>
+          <span id="document-pages">0 页</span>
+        </div>
+        <div class="topbar-actions">
+          <div class="menu-wrap">
+            <button class="button button-quiet" id="recent-toggle" type="button" aria-expanded="false" aria-controls="recent-panel"><span class="icon material-symbols-rounded" aria-hidden="true">history</span>最近</button>
+            <div class="recent-panel" id="recent-panel" hidden>
+              <div class="recent-header"><span>最近打开</span><button class="recent-clear" id="recent-clear" type="button">清空</button></div>
+              <div class="recent-empty" id="recent-empty">暂无最近打开的文件</div>
+              <div id="recent-list"></div>
+            </div>
+          </div>
+          <button class="button button-primary" id="open-button" type="button"><span class="icon material-symbols-rounded" aria-hidden="true">folder_open</span>打开 OFD</button>
+        </div>
+      </header>
+
+      <nav class="tab-bar" id="tab-bar" aria-label="打开的文档标签"></nav>
+
+      <main class="workspace">
+        <aside class="sidebar">
+          <div class="sidebar-heading">
+            <span>DOCUMENT</span>
+            <span class="worker-count" id="worker-count">0 workers</span>
+          </div>
+          <div class="thumbnail-heading">
+            <span>PAGES</span>
+            <span id="thumbnail-count">0</span>
+          </div>
+          <div class="thumbnail-list" id="thumbnail-list" aria-label="页面缩略图"></div>
+        </aside>
+
+        <section class="viewer-panel">
+          <div class="viewer-toolbar">
+            <div class="toolbar-group">
+              <button class="icon-button" id="zoom-out" type="button" aria-label="缩小"><span class="icon material-symbols-rounded" aria-hidden="true">remove</span></button>
+              <span class="zoom-value" id="zoom-value">100%</span>
+              <button class="icon-button" id="zoom-in" type="button" aria-label="放大"><span class="icon material-symbols-rounded" aria-hidden="true">add</span></button>
+              <button class="text-button" id="zoom-reset" type="button">重置</button>
+            </div>
+            <div class="toolbar-group page-jump">
+              <button class="icon-button" id="previous-page" type="button" aria-label="上一页"><span class="icon material-symbols-rounded" aria-hidden="true">chevron_left</span></button>
+              <label for="page-input">跳转</label>
+              <input id="page-input" min="1" type="number" value="1" />
+              <span id="page-total">/ 0</span>
+              <button class="icon-button" id="next-page" type="button" aria-label="下一页"><span class="icon material-symbols-rounded" aria-hidden="true">chevron_right</span></button>
+            </div>
+            <div class="toolbar-group search-group">
+              <button class="text-button icon-only" id="search-toggle" type="button" aria-label="检索文字" title="检索文字" data-tooltip="检索文字" aria-expanded="false" aria-controls="search-panel"><span class="icon material-symbols-rounded" aria-hidden="true">search</span></button>
+              <div class="search-panel" id="search-panel" hidden>
+                <input id="search-input" type="search" placeholder="输入文字并回车" aria-label="搜索文字" />
+                <button class="icon-button" id="search-previous" type="button" aria-label="上一个结果"><span class="icon material-symbols-rounded" aria-hidden="true">keyboard_arrow_up</span></button>
+                <button class="icon-button" id="search-next" type="button" aria-label="下一个结果"><span class="icon material-symbols-rounded" aria-hidden="true">keyboard_arrow_down</span></button>
+                <span id="search-status" aria-live="polite"></span>
+              </div>
+            </div>
+             <div class="toolbar-group toolbar-options">
+              <button class="text-button icon-only" id="fit-width" type="button" aria-label="适应宽度" title="适应宽度" data-tooltip="适应宽度"><span class="icon material-symbols-rounded" aria-hidden="true">width</span></button>
+              <button class="text-button icon-only" id="fit-page" type="button" aria-label="适应页面" title="适应页面" data-tooltip="适应页面"><span class="icon material-symbols-rounded" aria-hidden="true">fit_screen</span></button>
+              <button class="text-button icon-only" id="download-page" type="button" aria-label="下载页面" title="下载页面" data-tooltip="下载页面" disabled><span class="icon material-symbols-rounded" aria-hidden="true">download</span></button>
+              <button class="text-button icon-only" id="print-page" type="button" aria-label="打印当前页" title="打印当前页" data-tooltip="打印当前页" disabled><span class="icon material-symbols-rounded" aria-hidden="true">print</span></button>
+              <button class="text-button icon-only" id="rotate-page" type="button" aria-label="旋转 0°" title="旋转 0°" data-tooltip="旋转 0°" disabled><span class="icon material-symbols-rounded" aria-hidden="true">rotate_right</span></button>
+              <button class="text-button icon-only" id="toggle-thumbnails" type="button" aria-label="隐藏缩略图" title="隐藏缩略图" data-tooltip="隐藏缩略图"><span class="icon material-symbols-rounded" aria-hidden="true">view_sidebar</span></button>
+              <div class="settings-wrap">
+                <button class="text-button icon-only" id="settings-toggle" type="button" aria-label="设置" title="设置" data-tooltip="设置" aria-expanded="false" aria-controls="settings-panel"><span class="icon material-symbols-rounded" aria-hidden="true">tune</span></button>
+                <div class="settings-panel" id="settings-panel" hidden>
+                  <div class="settings-section-title">文档操作</div>
+                  <button class="settings-action" id="copy-path" type="button" disabled><span class="icon material-symbols-rounded" aria-hidden="true">content_copy</span>复制路径</button>
+                  <button class="settings-action" id="copy-page-text" type="button" disabled><span class="icon material-symbols-rounded" aria-hidden="true">content_copy</span>复制本页文字</button>
+                  <button class="settings-action" id="copy-document-text" type="button" disabled><span class="icon material-symbols-rounded" aria-hidden="true">content_copy</span>复制全文</button>
+                  <button class="settings-action danger-button" id="close-document" type="button" disabled><span class="icon material-symbols-rounded" aria-hidden="true">close</span>关闭文档</button>
+                   <div class="settings-divider"></div>
+                   <label><input id="dark-reading" type="checkbox" /> 深色阅读背景</label>
+                   <label><input id="text-layer-visible" type="checkbox" checked /> 显示文字层</label>
+                   <label>页面布局
+                     <select id="page-layout">
+                       <option value="single">单页</option>
+                       <option value="double">双页</option>
+                       <option value="double-odd">双页（奇数页在左）</option>
+                     </select>
+                   </label>
+                  <button class="settings-fullscreen" id="fullscreen-toggle" type="button"><span class="icon material-symbols-rounded" aria-hidden="true">fullscreen</span>全屏阅读</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="viewer" id="viewer">
+            <div class="empty-state" id="empty-state">
+              <div class="empty-orbit"><span></span><span></span><span></span></div>
+              <p class="eyebrow">LOCAL FIRST / PNG PIPELINE</p>
+              <h1>把一份 OFD<br /><em>变成可读的页面</em></h1>
+              <p class="empty-copy">选择本地文件，原生 Go 会在后台解析文档并按需推送页面图像。</p>
+              <button class="button button-primary" id="empty-open-button" type="button"><span class="icon material-symbols-rounded" aria-hidden="true">upload_file</span>选择 OFD 文件</button>
+              <p class="drop-tip">也可以将 `.ofd` 文件拖入窗口</p>
+            </div>
+            <div class="page-list" id="page-list" hidden></div>
+            <button class="back-to-top" id="back-to-top" type="button" aria-label="回到顶部" hidden>↑</button>
+          </div>
+        </section>
+      </main>
+
+      <footer class="statusbar" aria-live="polite">
+        <span class="connection-status" id="connection-status">连接中</span>
+        <span class="statusbar-divider" aria-hidden="true"></span>
+        <span id="render-status">准备就绪</span>
+        <progress id="render-progress" max="1" value="0" hidden></progress>
+        <span id="render-progress-label" hidden>0/0</span>
+        <span class="statusbar-spacer" aria-hidden="true"></span>
+        <span class="file-metadata" id="file-metadata">未打开文档</span>
+      </footer>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

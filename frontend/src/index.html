@@ -100,6 +100,7 @@
                      </select>
                    </label>
                   <button class="settings-fullscreen" id="fullscreen-toggle" type="button"><span class="icon material-symbols-rounded" aria-hidden="true">fullscreen</span>全屏阅读</button>
+                  <button class="settings-fullscreen" id="about-toggle" type="button"><span class="icon material-symbols-rounded" aria-hidden="true">info</span>关于 OFD Viewer</button>
                 </div>
               </div>
             </div>
@@ -131,6 +132,26 @@
       </footer>
       <div class="toast" id="toast" role="status"></div>
     </div>
+    <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-name">
+      <div class="about-content">
+        <h2 id="about-name" tabindex="-1">OFD Viewer</h2>
+        <div class="about-info">
+          <p><strong>版本：</strong> <span id="about-version"></span></p>
+          <p><strong>Go 版本：</strong> <span id="about-go-version"></span></p>
+          <p><strong>主页：</strong> <a id="about-homepage" href="https://github.com/zc310/ofd" target="_blank" rel="noopener noreferrer">https://github.com/zc310/ofd</a></p>
+          <p><strong>说明：</strong>基于 Go、Wails 和原生 WebView 的本地 OFD 文档查看器。</p>
+          <p><strong>功能特性：</strong></p>
+          <ul>
+            <li>本地渲染 PNG 页面，无额外 Web 服务</li>
+            <li>多文档标签、缩略图、搜索与文字层</li>
+            <li>单页、双页阅读与深色模式</li>
+          </ul>
+        </div>
+        <div class="about-actions">
+          <button id="about-close" type="button">关闭</button>
+        </div>
+      </div>
+    </dialog>
     <script type="module" src="./main.js"></script>
   </body>
 </html>

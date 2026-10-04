@@ -223,6 +223,19 @@ function closePopups(except = null) {
   }
 }
 
+
+function openAboutDialog() {
+  if (!elements.aboutDialog) return;
+  if (typeof elements.aboutDialog.showModal === "function") elements.aboutDialog.showModal();
+  else elements.aboutDialog.setAttribute("open", "");
+  if (elements.aboutClose) elements.aboutClose.focus();
+}
+
+function closeAboutDialog() {
+  if (!elements.aboutDialog) return;
+  if (typeof elements.aboutDialog.close === "function") elements.aboutDialog.close();
+  else elements.aboutDialog.removeAttribute("open");
+}
 function readRecentFiles() {
   try {
     const value = JSON.parse(localStorage.getItem(RECENT_FILES_KEY) || "[]");
@@ -734,6 +747,22 @@ function installControls() {
     elements.settingsPanel.hidden = !open;
     elements.settingsToggle.setAttribute("aria-expanded", String(open));
   });
+  if (elements.aboutToggle) {
+    elements.aboutToggle.addEventListener("click", () => {
+      closePopups();
+      openAboutDialog();
+    });
+  }
+  if (elements.aboutClose) elements.aboutClose.addEventListener("click", closeAboutDialog);
+  if (elements.aboutDialog && typeof elements.aboutDialog.addEventListener === "function") {
+    elements.aboutDialog.addEventListener("click", (event) => {
+      if (event.target === elements.aboutDialog) closeAboutDialog();
+    });
+    elements.aboutDialog.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeAboutDialog();
+    });
+  }
+
   elements.darkReading.addEventListener("change", (event) => {
     state.darkReading = event.target.checked;
     document.body.classList.toggle("dark-reading", state.darkReading);
@@ -1011,10 +1040,28 @@ async function bootstrap() {
     const paths = [initialPath, ...(pendingPaths || [])].filter(Boolean);
     connectSocket();
     for (const path of paths) openPath(path, false);
+    try {
+      const info = await invoke("AppInfo");
+      if (elements.aboutVersion && info && typeof info.version === "string") elements.aboutVersion.textContent = info.version;
+      if (elements.aboutGoVersion && info && typeof info.goVersion === "string") elements.aboutGoVersion.textContent = info.goVersion;
+      if (elements.aboutHomepage && info && typeof info.homepage === "string") {
+        elements.aboutHomepage.href = info.homepage;
+        elements.aboutHomepage.textContent = info.homepage;
+      }
+    } catch {}
   } catch (error) {
     console.error("初始化 Wails 渲染服务失败", error);
     setConnection("浏览器预览", "connecting");
     setRenderStatus(error.message || "请在 Wails 应用中打开 OFD 文件");
+    try {
+      const info = await invoke("AppInfo");
+      if (elements.aboutVersion && info && typeof info.version === "string") elements.aboutVersion.textContent = info.version;
+      if (elements.aboutGoVersion && info && typeof info.goVersion === "string") elements.aboutGoVersion.textContent = info.goVersion;
+      if (elements.aboutHomepage && info && typeof info.homepage === "string") {
+        elements.aboutHomepage.href = info.homepage;
+        elements.aboutHomepage.textContent = info.homepage;
+      }
+    } catch {}
   }
 }
 

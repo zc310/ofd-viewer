@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"sync"
 
@@ -15,6 +16,9 @@ import (
 const (
 	openPathEvent = "ofd:open-path"
 	maxOFDSize    = 256 << 20
+	// appName 与 homepage 是关于对话框展示的固定文案。
+	appName  = "OFD Viewer"
+	homepage = "https://github.com/zc310/ofd"
 )
 
 type App struct {
@@ -23,6 +27,23 @@ type App struct {
 	server    *renderServer
 	openMu    sync.Mutex
 	openQueue []string
+}
+
+// appInfo 是关于对话框展示的应用信息。
+type appInfo struct {
+	Name      string `json:"name"`
+	Version   string `json:"version"`
+	GoVersion string `json:"goVersion"`
+	Homepage  string `json:"homepage"`
+}
+
+func newAppInfo() appInfo {
+	return appInfo{
+		Name:      appName,
+		Version:   Version,
+		GoVersion: goruntime.Version(),
+		Homepage:  homepage,
+	}
 }
 
 func NewApp() (*App, error) {
@@ -54,6 +75,11 @@ func (a *App) WebSocketConfig() (webSocketConfig, error) {
 		return webSocketConfig{}, fmt.Errorf("渲染服务未初始化")
 	}
 	return a.server.config()
+}
+
+// AppInfo 返回关于对话框需要的名称、版本与项目地址。
+func (a *App) AppInfo() appInfo {
+	return newAppInfo()
 }
 
 // OpenFile 打开系统文件选择器，并返回一个 OFD 文件的绝对路径。

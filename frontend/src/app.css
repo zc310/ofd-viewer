@@ -271,3 +271,18 @@ button:disabled { cursor: not-allowed; }
   .page-list.double-layout .page-shell, .page-list.double-odd-layout .page-shell { max-width: none; }
   .page-list.double-layout .page-shell:nth-child(n), .page-list.double-odd-layout .page-shell:nth-child(n) { grid-column: auto; grid-row: auto; }
 }
+
+.about-dialog { width: min(460px, calc(100vw - 32px)); padding: 0; border: 0; border-radius: 10px; background: #fff; color: #172033; box-shadow: 0 12px 40px #17203355; }
+.about-dialog::backdrop { background: #17203366; }
+.about-content { display: grid; gap: 14px; padding: 20px; }
+.about-content h2 { margin: 0; font-size: 18px; }
+.about-info { font-size: 14px; line-height: 1.6; }
+.about-info p { margin: 0 0 8px; }
+.about-info ul { margin: 0 0 8px; padding-left: 20px; }
+.about-info li { margin: 0 0 4px; }
+.about-actions { display: flex; justify-content: flex-end; }
+.dark-reading .about-dialog { background: #252c38; color: #e6ebf2; }
+.dark-reading .about-dialog::backdrop { background: #17203366; }
+.dark-reading #about-homepage { color: #80b4e5; }
+#about-homepage { color: #2476bd; text-decoration: none; }
+#about-homepage:hover { text-decoration: underline; }

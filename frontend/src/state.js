@@ -55,6 +55,13 @@ export function createElements() {
     searchPrevious: document.querySelector("#search-previous"),
     searchNext: document.querySelector("#search-next"),
     searchStatus: document.querySelector("#search-status"),
+    aboutToggle: document.querySelector("#about-toggle"),
+    aboutDialog: document.querySelector("#about-dialog"),
+    aboutClose: document.querySelector("#about-close"),
+    aboutName: document.querySelector("#about-name"),
+    aboutVersion: document.querySelector("#about-version"),
+    aboutHomepage: document.querySelector("#about-homepage"),
+    aboutGoVersion: document.querySelector("#about-go-version"),
   };
 }
 

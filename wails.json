@@ -14,7 +14,7 @@
   "info": {
     "companyName": "zc310.tech",
     "productName": "OFD Viewer",
-    "productVersion": "0.1.0",
+    "productVersion": "0.0.4",
     "comments": "A native Go OFD document viewer",
     "fileAssociations": [
       {

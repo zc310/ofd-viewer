@@ -526,12 +526,12 @@ function readDisplaySettings() {
     state.textLayerVisible = localStorage.getItem("ofd-viewer-text-layer-visible") !== "false";
     const savedLayout = localStorage.getItem("ofd-viewer-page-layout");
     state.pageLayout = ["single", "double", "double-odd"].includes(savedLayout) ? savedLayout : "single";
-    state.thumbnailsVisible = localStorage.getItem(THUMBNAILS_VISIBLE_KEY) !== "false";
+    state.thumbnailsVisible = localStorage.getItem(THUMBNAILS_VISIBLE_KEY) === "true";
   } catch {
     state.darkReading = false;
     state.textLayerVisible = true;
     state.pageLayout = "single";
-    state.thumbnailsVisible = true;
+    state.thumbnailsVisible = false;
   }
   applyDisplaySettings();
 }
@@ -990,7 +990,7 @@ async function bootstrap() {
     state.darkReading = false;
     state.textLayerVisible = true;
     state.pageLayout = "single";
-    state.thumbnailsVisible = true;
+    state.thumbnailsVisible = false;
     applyDisplaySettings();
     console.error("读取显示设置失败", error);
   }

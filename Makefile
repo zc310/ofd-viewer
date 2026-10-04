@@ -1,7 +1,7 @@
 SHELL := /bin/sh
 
 APP      := ofd-viewer
-VERSION  ?= 0.0.3
+VERSION  ?= 0.0.4
 WAILS    ?= wails
 DIST     := dist
 BIN      := build/bin

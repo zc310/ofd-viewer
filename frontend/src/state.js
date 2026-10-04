@@ -73,7 +73,7 @@ export function createState() {
     pageParts: new Map(),
     reconnectTimer: null,
     reconnectDelay: 250,
-    thumbnailsVisible: true,
+    thumbnailsVisible: false,
     thumbnailObserver: null,
     thumbnailElements: new Map(),
     recentFiles: [],

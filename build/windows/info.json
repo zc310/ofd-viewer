@@ -1,15 +1,15 @@
 {
-	"fixed": {
-		"file_version": "{{.Info.ProductVersion}}"
-	},
-	"info": {
-		"0000": {
-			"ProductVersion": "{{.Info.ProductVersion}}",
-			"CompanyName": "{{.Info.CompanyName}}",
-			"FileDescription": "{{.Info.ProductName}}",
-			"LegalCopyright": "{{.Info.Copyright}}",
-			"ProductName": "{{.Info.ProductName}}",
-			"Comments": "{{.Info.Comments}}"
-		}
-	}
+  "fixed": {
+    "file_version": "0.0.4"
+  },
+  "info": {
+    "0409": {
+      "ProductVersion": "0.0.4",
+      "CompanyName": "zc310.tech",
+      "FileDescription": "OFD Viewer",
+      "LegalCopyright": "Copyright zc310.tech",
+      "ProductName": "OFD Viewer",
+      "Comments": "A native Go OFD document viewer"
+    }
+  }
 }

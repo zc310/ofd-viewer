@@ -35,6 +35,7 @@ go.work.sum
 # Wails build output
 build/bin/
 build/windows/*.ico
+wails_windows_*.syso
 node_modules
 frontend/dist
 dist/

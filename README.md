@@ -1,6 +1,6 @@
 # OFD Viewer
 
-一个基于 Go、Wails 和原生 WebView 的 OFD 文档查看器。
+一个基于 Go、Wails 3 和原生 WebView 的 OFD 文档查看器。
 
 OFD Viewer 使用 Go 解析 OFD 文档并按需渲染 PNG 页面，前端负责页面浏览、缩放、文字搜索和阅读设置。文档处理服务只监听本机回环地址，不需要部署额外的 HTTP 服务。
 
@@ -38,14 +38,16 @@ ofd-viewer/
 ├── main.go                # Wails 应用入口
 ├── server.go              # 本机 WebSocket 渲染服务和 OFD 操作
 ├── server_test.go         # WebSocket、渲染、文字和搜索测试
-├── wails.json             # Wails 项目配置
+├── Taskfile.yml           # Wails 3 开发、构建和平台任务
 ├── frontend/
 │   ├── src/               # 前端源码
 │   ├── dist/              # Wails 嵌入的前端资源
-│   ├── build.mjs         # 前端资源构建脚本
+│   ├── src/bindings/      # Wails 3 自动生成的 Go bindings
+│   ├── build.mjs          # 前端资源构建和打包脚本
 │   └── dev-server.mjs    # 开发预览服务器
 └── build/
     ├── appicon.png        # 应用图标
+    ├── config.yml         # 应用元数据和文件关联
     ├── appicon.svg        # SVG 图标候选方案
     ├── darwin/             # macOS 构建资源
     └── windows/            # Windows 构建资源
@@ -53,10 +55,16 @@ ofd-viewer/
 
 ## 环境要求
 
-- Go `1.26.4` 或更高版本。
+- Go `1.27` 或更高版本。
 - Node.js，建议使用当前 LTS 版本。
-- Wails CLI `v2.15.0`。
-- Linux 构建需要 Wails/WebKitGTK 所需的系统开发库。
+- Wails CLI `v3.0.0-beta.34` (`wails3`)。
+- Linux 默认构建需要 GTK4 和 WebKitGTK 6.0 开发库；旧系统可用 GTK3 兼容构建标签。
+
+安装 Wails 3 CLI：
+
+```bash
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.34
+```
 
 项目通过 Go modules 引用 OFD 核心库：
 
@@ -71,7 +79,7 @@ github.com/zc310/ofd
 在项目根目录执行：
 
 ```bash
-go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 dev
+wails3 task dev
 ```
 
 前端开发服务器使用：
@@ -90,10 +98,10 @@ http://127.0.0.1:5173
 
 ## 构建
 
-只构建当前平台的 Wails 应用，不生成安装包：
+只构建当前平台的 Wails 3 应用：
 
 ```bash
-go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -nopackage -nocolour -v 0
+wails3 build
 ```
 
 构建结果默认位于：
@@ -133,16 +141,19 @@ go vet ./...
 检查前端 JavaScript：
 
 ```bash
+node frontend/build.mjs
 node --check frontend/src/main.js
 node --check frontend/build.mjs
 node --check frontend/dev-server.mjs
+node --check frontend/dist/main.js
 ```
 
 检查源码和构建资源是否同步：
 
 ```bash
+node frontend/build.mjs
+node --check frontend/dist/main.js
 cmp frontend/src/index.html frontend/dist/index.html
-cmp frontend/src/main.js frontend/dist/main.js
 cmp frontend/src/app.css frontend/dist/app.css
 cmp frontend/src/fonts/material-symbols-rounded.woff2 frontend/dist/fonts/material-symbols-rounded.woff2
 ```
@@ -155,18 +166,15 @@ git diff --check
 
 ## 文件关联
 
-Wails 配置在 `wails.json` 中声明 `.ofd` 文件关联：
+Wails 3 配置在 `build/config.yml` 中声明 `.ofd` 文件关联：
 
-```json
-"fileAssociations": [
-  {
-    "ext": "ofd",
-    "name": "OFD",
-    "description": "OFD document",
-    "iconName": "appicon",
-    "role": "Viewer"
-  }
-]
+```yaml
+fileAssociations:
+  - ext: ofd
+    name: OFD
+    description: OFD document
+    iconName: appicon
+    role: Viewer
 ```
 
 应用图标入口为：

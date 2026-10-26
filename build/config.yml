@@ -1,0 +1,44 @@
+version: '3'
+
+info:
+  companyName: "zc310.tech"
+  productName: "OFD Viewer"
+  productIdentifier: "tech.zc310.OFDViewer"
+  description: "A native Go OFD document viewer"
+  copyright: "Copyright zc310.tech"
+  comments: "A native Go OFD document viewer"
+  version: "0.0.4"
+
+dev_mode:
+  root_path: .
+  log_level: warn
+  debounce: 1000
+  ignore:
+    dir:
+      - .git
+      - node_modules
+      - frontend/dist
+      - build/bin
+    file:
+      - .DS_Store
+    watched_extension:
+      - "*.go"
+    git_ignore: true
+  executes:
+    - cmd: wails3 task common:install:frontend:deps
+      type: once
+    - cmd: node frontend/build.mjs
+      type: once
+    - cmd: node frontend/dev-server.mjs
+      type: background
+    - cmd: wails3 task build:dev
+      type: blocking
+    - cmd: wails3 task run
+      type: primary
+
+fileAssociations:
+  - ext: ofd
+    name: OFD
+    description: OFD document
+    iconName: appicon
+    role: Viewer

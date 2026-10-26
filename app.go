@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -10,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 const (
@@ -22,11 +21,12 @@ const (
 )
 
 type App struct {
-	ctx       context.Context
-	ctxMu     sync.RWMutex
-	server    *renderServer
-	openMu    sync.Mutex
-	openQueue []string
+	app           *application.App
+	window        *application.WebviewWindow
+	server        *renderServer
+	openMu        sync.Mutex
+	openQueue     []string
+	frontendReady bool
 }
 
 // appInfo 是关于对话框展示的应用信息。
@@ -54,13 +54,7 @@ func NewApp() (*App, error) {
 	return &App{server: server}, nil
 }
 
-func (a *App) startup(ctx context.Context) {
-	a.ctxMu.Lock()
-	a.ctx = ctx
-	a.ctxMu.Unlock()
-}
-
-func (a *App) shutdown(context.Context) {
+func (a *App) shutdown() {
 	if a.server == nil {
 		return
 	}
@@ -84,19 +78,14 @@ func (a *App) AppInfo() appInfo {
 
 // OpenFile 打开系统文件选择器，并返回一个 OFD 文件的绝对路径。
 func (a *App) OpenFile() (string, error) {
-	a.ctxMu.RLock()
-	ctx := a.ctx
-	a.ctxMu.RUnlock()
-	if ctx == nil {
+	if a.app == nil {
 		return "", fmt.Errorf("应用尚未准备完成")
 	}
-	path, err := runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
-		Title: "打开 OFD 文件",
-		Filters: []runtime.FileFilter{
-			{DisplayName: "OFD 文件 (*.ofd)", Pattern: "*.ofd"},
-			{DisplayName: "所有文件 (*.*)", Pattern: "*.*"},
-		},
-	})
+	path, err := a.app.Dialog.OpenFile().
+		SetTitle("打开 OFD 文件").
+		AddFilter("OFD 文件 (*.ofd)", "*.ofd").
+		AddFilter("所有文件 (*.*)", "*.*").
+		PromptForSingleSelection()
 	if err != nil {
 		return "", fmt.Errorf("打开文件选择器失败: %w", err)
 	}
@@ -115,20 +104,17 @@ func (a *App) SavePNG(dataBase64, filename string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("PNG 数据无效: %w", err)
 	}
-	a.ctxMu.RLock()
-	ctx := a.ctx
-	a.ctxMu.RUnlock()
-	if ctx == nil {
+	if a.app == nil {
 		return "", fmt.Errorf("应用尚未准备完成")
 	}
 	if filename == "" {
 		filename = "ofd-page.png"
 	}
-	path, err := runtime.SaveFileDialog(ctx, runtime.SaveDialogOptions{
-		Title:           "保存页面 PNG",
-		DefaultFilename: filepath.Base(filename),
-		Filters:         []runtime.FileFilter{{DisplayName: "PNG 图片 (*.png)", Pattern: "*.png"}},
-	})
+	path, err := a.app.Dialog.SaveFile().
+		SetMessage("保存页面 PNG").
+		SetFilename(filepath.Base(filename)).
+		AddFilter("PNG 图片 (*.png)", "*.png").
+		PromptForSingleSelection()
 	if err != nil {
 		return "", fmt.Errorf("打开保存对话框失败: %w", err)
 	}
@@ -143,14 +129,10 @@ func (a *App) SavePNG(dataBase64, filename string) (string, error) {
 
 // PrintWindow prints the current Wails window using the native print facility.
 func (a *App) PrintWindow() error {
-	a.ctxMu.RLock()
-	ctx := a.ctx
-	a.ctxMu.RUnlock()
-	if ctx == nil {
+	if a.window == nil {
 		return fmt.Errorf("应用尚未准备完成")
 	}
-	runtime.WindowPrint(ctx)
-	return nil
+	return a.window.Print()
 }
 
 // InitialPath 返回启动参数中的 OFD 文件路径。
@@ -175,23 +157,47 @@ func (a *App) PendingPaths() []string {
 	return paths
 }
 
+// FrontendReady releases file-open events queued before the frontend subscribed.
+func (a *App) FrontendReady() {
+	a.openMu.Lock()
+	a.frontendReady = true
+	paths := append([]string(nil), a.openQueue...)
+	a.openQueue = nil
+	a.openMu.Unlock()
+	for _, path := range paths {
+		a.emitOpenPath(path)
+	}
+}
+
 func (a *App) queueOpenPath(path string) {
 	path, err := normalizeOFDPath(path)
 	if err != nil {
 		return
 	}
-	a.ctxMu.RLock()
-	ctx := a.ctx
-	a.ctxMu.RUnlock()
-	if ctx == nil {
-		a.openMu.Lock()
+	a.openMu.Lock()
+	if !a.frontendReady {
 		a.openQueue = append(a.openQueue, path)
 		a.openMu.Unlock()
+		a.restoreWindow()
 		return
 	}
-	runtime.WindowUnminimise(ctx)
-	runtime.WindowShow(ctx)
-	runtime.EventsEmit(ctx, openPathEvent, path)
+	a.openMu.Unlock()
+	a.emitOpenPath(path)
+}
+
+func (a *App) emitOpenPath(path string) {
+	a.restoreWindow()
+	if a.app != nil {
+		a.app.Event.Emit(openPathEvent, path)
+	}
+}
+
+func (a *App) restoreWindow() {
+	if a.window == nil {
+		return
+	}
+	a.window.Restore()
+	a.window.Show()
 }
 
 func normalizeOFDPath(path string) (string, error) {

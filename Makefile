@@ -2,11 +2,8 @@ SHELL := /bin/sh
 
 APP      := ofd-viewer
 VERSION ?= 0.0.4
-WAILS    ?= wails
-# version.go 的 Version 是关于对话框展示的版本号，wails.json 的
-# info.productVersion 是 Windows 文件属性里的版本号：Makefile 的 VERSION 是唯一来源，
-# 两者由 TestVersionMatchesMakefile 与人工同步保持一致。
-VERSION_LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
+WAILS3   ?= wails3
+# version.go 的默认值仅用于未通过 Taskfile 构建时；发行构建由 VERSION 注入。
 DIST     := dist
 BIN      := build/bin
 LINUX    := $(BIN)/$(APP)
@@ -19,8 +16,6 @@ WINDOWS_ARM64 := $(BIN)/$(APP)-arm64.exe
 WINDOWS_ARM64_INSTALLER := $(BIN)/$(APP)-arm64-installer.exe
 WINDOWS_ARM64_BUILD_STAMP := $(BIN)/.$(APP)-windows-arm64-built
 WINDOWS_ARM64_INSTALLER_STAMP := $(BIN)/.$(APP)-windows-arm64-installer-built
-WINDOWS_ARM64_CC ?= $(if $(filter undefined default,$(origin CC)),aarch64-w64-mingw32-clang,$(CC))
-WINDOWS_ARM64_CXX ?= $(if $(filter undefined default,$(origin CXX)),aarch64-w64-mingw32-clang++,$(CXX))
 LINUX_ARM64_BUILD_STAMP := $(BIN)/.$(APP)-linux-arm64-built
 LINUX_ARM64_CC ?= $(if $(filter undefined default,$(origin CC)),aarch64-linux-gnu-gcc,$(CC))
 LINUX_ARM64_CXX ?= $(if $(filter undefined default,$(origin CXX)),aarch64-linux-gnu-g++,$(CXX))
@@ -38,13 +33,13 @@ all: package
 build: build-linux build-windows build-windows-arm64
 
 build-linux:
-	$(WAILS) build --platform linux/amd64 --tags webkit2_41 $(VERSION_LDFLAGS) -m -nopackage
+	VERSION="$(VERSION)" $(WAILS3) task linux:build PRODUCTION=true
 
 build-linux-arm64:
 	$(MAKE) $(LINUX_ARM64_BUILD_STAMP)
 
 $(LINUX_ARM64_BUILD_STAMP): FORCE
-	CC="$(LINUX_ARM64_CC)" CXX="$(LINUX_ARM64_CXX)" $(WAILS) build --platform linux/arm64 -o "$(notdir $(LINUX_ARM64))" --tags webkit2_41 $(VERSION_LDFLAGS) -m -nopackage
+	CC="$(LINUX_ARM64_CC)" CXX="$(LINUX_ARM64_CXX)" VERSION="$(VERSION)" $(WAILS3) task linux:build:arm64 PRODUCTION=true
 	@test -f "$(LINUX_ARM64)" || (printf 'Linux ARM64 executable was not created. Check the cross compiler and target libraries and try again.\n' >&2; exit 1)
 	@touch "$@"
 
@@ -52,14 +47,14 @@ build-windows:
 	$(MAKE) $(WINDOWS_BUILD_STAMP)
 
 $(WINDOWS_BUILD_STAMP): FORCE
-	$(WAILS) build --platform windows/amd64 $(VERSION_LDFLAGS) -m -nopackage
+	VERSION="$(VERSION)" $(WAILS3) task windows:build PRODUCTION=true
 	@touch "$@"
 
 build-windows-arm64:
 	$(MAKE) $(WINDOWS_ARM64_BUILD_STAMP)
 
 $(WINDOWS_ARM64_BUILD_STAMP): FORCE
-	CC="$(WINDOWS_ARM64_CC)" CXX="$(WINDOWS_ARM64_CXX)" $(WAILS) build --platform windows/arm64 -o "$(notdir $(WINDOWS_ARM64))" $(VERSION_LDFLAGS) -m -nopackage
+	VERSION="$(VERSION)" $(WAILS3) task windows:build:arm64 PRODUCTION=true
 	@test -f "$(WINDOWS_ARM64)" || (printf 'Windows ARM64 executable was not created. Check the cross compiler and try again.\n' >&2; exit 1)
 	@touch "$@"
 
@@ -68,7 +63,7 @@ build-windows-installer:
 
 $(WINDOWS_INSTALLER_STAMP): FORCE
 	@rm -f "$(WINDOWS_INSTALLER)"
-	$(WAILS) build --platform windows/amd64 $(VERSION_LDFLAGS) --nsis -m
+	VERSION="$(VERSION)" $(WAILS3) task windows:package
 	@test -f "$(WINDOWS_INSTALLER)" || (printf 'Windows installer was not created. Install NSIS (makensis) and try again.\n' >&2; exit 1)
 	@touch "$@"
 
@@ -77,7 +72,7 @@ build-windows-arm64-installer:
 
 $(WINDOWS_ARM64_INSTALLER_STAMP): FORCE
 	@rm -f "$(WINDOWS_ARM64_INSTALLER)"
-	CC="$(WINDOWS_ARM64_CC)" CXX="$(WINDOWS_ARM64_CXX)" $(WAILS) build --platform windows/arm64 -o "$(notdir $(WINDOWS_ARM64))" $(VERSION_LDFLAGS) --nsis -m
+	VERSION="$(VERSION)" $(WAILS3) task windows:package:arm64
 	@test -f "$(WINDOWS_ARM64_INSTALLER)" || (printf 'Windows ARM64 installer was not created. Install NSIS (makensis) and try again.\n' >&2; exit 1)
 	@touch "$@"
 
@@ -159,6 +154,6 @@ help:
 	  'make package-windows-arm64-installer  Create the Windows ARM64 installer ZIP package' \
 	  'make test             Run Go tests and vet' \
 	  'make clean            Remove generated ZIP packages' \
-	  'WAILS=/path/to/wails make package' \
+	  'WAILS3=/path/to/wails3 make package' \
 	  'CC=... CXX=... make build-windows-arm64' \
 	  'CC=... CXX=... make build-linux-arm64'

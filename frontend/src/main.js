@@ -3,6 +3,8 @@ import { activateTab, addTab, applyOpened, activeDocument, clearTabDocument, rem
 import { createViewer } from "./viewer.js";
 import { createThumbnails } from "./thumbnails.js";
 import { createTextLayer } from "./text-layer.js";
+import { App as WailsApp } from "./bindings/github.com/zc310/ofd-viewer/index.js";
+import { Events } from "@wailsio/runtime";
 
 const RECENT_FILES_KEY = "ofd-viewer-recent-files";
 const RECENT_FILES_LIMIT = 8;
@@ -51,7 +53,7 @@ function tabHasDocument(tab) {
 }
 
 function appBridge() {
-  return window.go?.main?.App || null;
+  return window._wails?.environment?.OS ? WailsApp : null;
 }
 
 async function invoke(name, ...args) {
@@ -640,15 +642,7 @@ async function waitForBridge() {
 
 function installFileDrop() {
   try {
-    const runtime = window.runtime;
-    if (typeof runtime?.OnFileDrop === "function") {
-      runtime.OnFileDrop((_x, _y, paths) => {
-        const path = paths?.find((candidate) => /\.ofd$/i.test(candidate));
-        if (path) openPath(path);
-        else showToast("请选择 .ofd 文件");
-      }, false);
-    }
-    if (typeof runtime?.EventsOn === "function") runtime.EventsOn("ofd:open-path", (path) => openPath(path));
+    Events.On("ofd:open-path", (event) => openPath(event.data));
   } catch {
     // The Vite browser preview does not provide the native Wails bridge.
   }
@@ -1012,7 +1006,6 @@ function createModules() {
 async function bootstrap() {
   createModules();
   installControls();
-  installFileDrop();
   try {
     readDisplaySettings();
   } catch (error) {
@@ -1034,12 +1027,14 @@ async function bootstrap() {
   }
   try {
     await waitForBridge();
+    installFileDrop();
     state.socketConfig = await invoke("WebSocketConfig");
     const initialPath = await invoke("InitialPath");
     const pendingPaths = await invoke("PendingPaths");
     const paths = [initialPath, ...(pendingPaths || [])].filter(Boolean);
     connectSocket();
     for (const path of paths) openPath(path, false);
+    await invoke("FrontendReady");
     try {
       const info = await invoke("AppInfo");
       if (elements.aboutVersion && info && typeof info.version === "string") elements.aboutVersion.textContent = info.version;

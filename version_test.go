@@ -10,9 +10,7 @@ import (
 // TestVersionMatchesMakefile 守住版本号的单一来源约定。
 //
 // Makefile 的 VERSION 与 version.go 的 Version 是同一个版本号的两份文本：Makefile
-// 构建时注入前者，go build / wails dev 未经 Makefile 时用后者。wails.json 的
-// info.productVersion 也记了一份，但它只影响 Windows 文件属性，无法从 Makefile
-// 引用，因此由人工同步。
+// 构建时传入 Wails 3 Taskfile，go build / wails3 dev 未经 Makefile 时使用后者。
 func TestVersionMatchesMakefile(t *testing.T) {
 	makefile, err := findMakefile()
 	if err != nil {
@@ -52,11 +50,10 @@ func TestVersionHasNoVPrefix(t *testing.T) {
 	}
 }
 
-// TestMakefileInjectsVersion 确认 Makefile 真的把 VERSION 传进了 ldflags。
+// TestBuildTasksInjectVersion 确认 Makefile 传递 VERSION，且平台 Taskfile 会注入版本。
 //
-// 只声明 VERSION 却忘了接到 wails build 上时，构建能过、版本号却永远是兜底值，
-// 关于对话框会一直显示旧版本；这条测试盯的是 ldflags 而不是 VERSION 本身。
-func TestMakefileInjectsVersion(t *testing.T) {
+// 只声明 VERSION 却忘了传入 Taskfile 时，关于对话框会一直显示兜底值。
+func TestBuildTasksInjectVersion(t *testing.T) {
 	makefile, err := findMakefile()
 	if err != nil {
 		t.Fatalf("定位 Makefile 失败: %v", err)
@@ -65,8 +62,18 @@ func TestMakefileInjectsVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("读取 Makefile 失败: %v", err)
 	}
-	if !strings.Contains(string(raw), "-X main.Version=$(VERSION)") {
-		t.Error("Makefile 里找不到 -X main.Version=$(VERSION)；版本号不会被注入，关于对话框会一直显示兜底值")
+	if !strings.Contains(string(raw), `VERSION="$(VERSION)" $(WAILS3) task`) {
+		t.Error("Makefile 没有把 VERSION 传给 Wails 3 Taskfile")
+	}
+	root := filepath.Dir(makefile)
+	for _, name := range []string{"linux", "windows", "darwin"} {
+		taskfile, err := os.ReadFile(filepath.Join(root, "build", "Taskfile."+name+".yml"))
+		if err != nil {
+			t.Fatalf("读取 %s Taskfile 失败: %v", name, err)
+		}
+		if !strings.Contains(string(taskfile), "-X main.Version={{.VERSION}}") {
+			t.Errorf("%s Taskfile 没有注入版本号", name)
+		}
 	}
 }
 

@@ -1,0 +1,43 @@
+version: '3'
+
+vars:
+  APP_NAME: ofd-viewer
+  VERSION: '{{.VERSION | default "0.0.4"}}'
+  BIN_DIR: build/bin
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 5173}}'
+
+includes:
+  common: ./build/Taskfile.common.yml
+  linux: ./build/Taskfile.linux.yml
+  windows: ./build/Taskfile.windows.yml
+  darwin: ./build/Taskfile.darwin.yml
+
+tasks:
+  build:
+    summary: Builds the application for the current platform
+    cmds:
+      - task: '{{OS}}:build'
+        vars:
+          PRODUCTION: "true"
+
+  build:dev:
+    summary: Builds the application for development
+    cmds:
+      - task: '{{OS}}:build'
+        vars:
+          PRODUCTION: "false"
+
+  package:
+    summary: Packages the application for the current platform
+    cmds:
+      - task: '{{OS}}:package'
+
+  run:
+    summary: Runs the application
+    cmds:
+      - task: '{{OS}}:run'
+
+  dev:
+    summary: Runs the application in development mode
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}

@@ -1,0 +1,75 @@
+version: '3'
+
+includes:
+  common: Taskfile.common.yml
+
+tasks:
+  build:
+    summary: Builds the Windows amd64 application
+    deps:
+      - task: common:build:frontend
+      - task: generate:syso
+    cmds:
+      - |
+        node -e "require('node:fs').mkdirSync('{{.BIN_DIR}}', { recursive: true })"
+      - go build {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/{{.APP_NAME}}.exe
+      - |
+        node -e "require('node:fs').rmSync('wails_windows_amd64.syso', { force: true })"
+    vars:
+      BUILD_TAGS: '{{if .EXTRA_TAGS}}{{.EXTRA_TAGS}}{{end}}{{if eq .PRODUCTION "true"}}{{if .EXTRA_TAGS}},{{end}}production{{end}}'
+      BUILD_FLAGS: '{{if .BUILD_TAGS}}-tags {{.BUILD_TAGS}}{{end}} {{if eq .PRODUCTION "true"}}-trimpath -ldflags="-w -s -H windowsgui -X main.Version={{.VERSION}}"{{else}}-gcflags=all="-l" -ldflags="-X main.Version={{.VERSION}}"{{end}}'
+    env:
+      GOOS: windows
+      GOARCH: amd64
+      CGO_ENABLED: 0
+
+  build:arm64:
+    summary: Builds the Windows ARM64 application
+    deps:
+      - task: common:build:frontend
+      - task: generate:syso:arm64
+    cmds:
+      - |
+        node -e "require('node:fs').mkdirSync('{{.BIN_DIR}}', { recursive: true })"
+      - go build {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/{{.APP_NAME}}-arm64.exe
+      - |
+        node -e "require('node:fs').rmSync('wails_windows_arm64.syso', { force: true })"
+    vars:
+      BUILD_TAGS: '{{if .EXTRA_TAGS}}{{.EXTRA_TAGS}}{{end}}{{if eq .PRODUCTION "true"}}{{if .EXTRA_TAGS}},{{end}}production{{end}}'
+      BUILD_FLAGS: '{{if .BUILD_TAGS}}-tags {{.BUILD_TAGS}}{{end}} {{if eq .PRODUCTION "true"}}-trimpath -ldflags="-w -s -H windowsgui -X main.Version={{.VERSION}}"{{else}}-gcflags=all="-l" -ldflags="-X main.Version={{.VERSION}}"{{end}}'
+    env:
+      GOOS: windows
+      GOARCH: arm64
+      CGO_ENABLED: 0
+
+  generate:syso:
+    summary: Generates Windows amd64 icon and version resources
+    cmds:
+      - wails3 generate syso -arch amd64 -icon build/windows/icon.ico -manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_amd64.syso
+
+  generate:syso:arm64:
+    summary: Generates Windows ARM64 icon and version resources
+    cmds:
+      - wails3 generate syso -arch arm64 -icon build/windows/icon.ico -manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_arm64.syso
+
+  package:
+    summary: Creates a Windows amd64 NSIS installer
+    dir: build/windows/installer
+    cmds:
+      - task: build
+        vars:
+          PRODUCTION: "true"
+      - makensis -DARG_WAILS_AMD64_BINARY="../../bin/{{.APP_NAME}}.exe" project.nsi
+
+  package:arm64:
+    summary: Creates a Windows ARM64 NSIS installer
+    dir: build/windows/installer
+    cmds:
+      - task: build:arm64
+        vars:
+          PRODUCTION: "true"
+      - makensis -DARG_WAILS_ARM64_BINARY="../../bin/{{.APP_NAME}}-arm64.exe" project.nsi
+
+  run:
+    cmds:
+      - '{{.BIN_DIR}}/{{.APP_NAME}}.exe'

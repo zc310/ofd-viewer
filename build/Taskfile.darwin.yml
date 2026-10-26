@@ -1,0 +1,31 @@
+version: '3'
+
+includes:
+  common: Taskfile.common.yml
+
+tasks:
+  build:
+    summary: Builds the macOS application executable
+    deps:
+      - task: common:build:frontend
+    cmds:
+      - mkdir -p {{.BIN_DIR}}
+      - go build {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/{{.APP_NAME}}
+    vars:
+      BUILD_TAGS: '{{if .EXTRA_TAGS}}{{.EXTRA_TAGS}}{{end}}{{if eq .PRODUCTION "true"}}{{if .EXTRA_TAGS}},{{end}}production{{end}}'
+      BUILD_FLAGS: '{{if .BUILD_TAGS}}-tags {{.BUILD_TAGS}}{{end}} {{if eq .PRODUCTION "true"}}-trimpath -ldflags="-w -s -X main.Version={{.VERSION}}"{{else}}-gcflags=all="-l" -ldflags="-X main.Version={{.VERSION}}"{{end}}'
+    env:
+      GOOS: darwin
+      GOARCH: '{{.ARCH | default ARCH}}'
+      CGO_ENABLED: 1
+
+  package:
+    summary: Builds the macOS executable
+    cmds:
+      - task: build
+        vars:
+          PRODUCTION: "true"
+
+  run:
+    cmds:
+      - '{{.BIN_DIR}}/{{.APP_NAME}}'

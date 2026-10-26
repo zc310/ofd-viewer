@@ -1,0 +1,32 @@
+version: '3'
+
+tasks:
+  install:frontend:deps:
+    summary: Installs frontend dependencies
+    dir: frontend
+    sources:
+      - package.json
+      - package-lock.json
+    generates:
+      - node_modules/*
+    cmds:
+      - npm install
+
+  generate:bindings:
+    summary: Generates Wails 3 frontend bindings
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - frontend/src/bindings/**/*
+    cmds:
+      - wails3 generate bindings -d frontend/src/bindings
+
+  build:frontend:
+    summary: Builds the bundled frontend
+    deps:
+      - task: install:frontend:deps
+      - task: generate:bindings
+    cmds:
+      - node frontend/build.mjs

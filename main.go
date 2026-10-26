@@ -1,71 +1,82 @@
 package main
 
 import (
-	"context"
 	"embed"
 	"fmt"
 	"os"
 
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-	"github.com/wailsapp/wails/v2/pkg/options/linux"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
-	app, err := NewApp()
+	service, err := NewApp()
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, "初始化 OFD Viewer 失败:", err)
 		return
 	}
-	defer app.shutdown(context.Background())
 
-	err = wails.Run(&options.App{
-		Title:                    "OFD Viewer",
-		Width:                    1280,
-		Height:                   860,
-		MinWidth:                 880,
-		MinHeight:                560,
-		EnableDefaultContextMenu: true,
-		AssetServer: &assetserver.Options{
-			Assets: assets,
-		},
-		BackgroundColour: &options.RGBA{R: 20, G: 23, B: 29, A: 255},
-		OnStartup:        app.startup,
-		OnShutdown:       app.shutdown,
-		Mac: &mac.Options{
-			OnFileOpen: func(path string) {
-				app.queueOpenPath(path)
-			},
-		},
-		SingleInstanceLock: &options.SingleInstanceLock{
-			UniqueId: "ofd-viewer-zc310-tech",
-			OnSecondInstanceLaunch: func(data options.SecondInstanceData) {
+	app := application.New(application.Options{
+		Name:             appName,
+		Description:      "A native Go OFD document viewer",
+		FileAssociations: []string{".ofd"},
+		SingleInstance: &application.SingleInstanceOptions{
+			UniqueID: "ofd-viewer-zc310-tech",
+			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
 				for _, arg := range data.Args {
 					if isOFDPath(arg) {
-						app.queueOpenPath(arg)
+						service.queueOpenPath(arg)
 						break
 					}
 				}
 			},
 		},
-		DragAndDrop: &options.DragAndDrop{
-			EnableFileDrop: true,
+		Assets: application.AssetOptions{
+			Handler: application.AssetFileServerFS(assets),
 		},
-		Linux: &linux.Options{
-			WebviewGpuPolicy: linux.WebviewGpuPolicyAlways,
-			ProgramName:      "ofd-viewer",
+		Linux: application.LinuxOptions{
+			ProgramName: "ofd-viewer",
 		},
-		Bind: []interface{}{
-			app,
+		Mac: application.MacOptions{
+			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
 
-	if err != nil {
+	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:                       "main",
+		Title:                      appName,
+		URL:                        "/",
+		Width:                      1280,
+		Height:                     860,
+		MinWidth:                   880,
+		MinHeight:                  560,
+		BackgroundColour:           application.NewRGBA(20, 23, 29, 255),
+		EnableFileDrop:             true,
+		DefaultContextMenuDisabled: false,
+		Linux: application.LinuxWindow{
+			WebviewGpuPolicy: application.WebviewGpuPolicyAlways,
+		},
+	})
+	service.app = app
+	service.window = window
+	app.RegisterService(application.NewService(service))
+	app.OnShutdown(service.shutdown)
+	app.Event.OnApplicationEvent(events.Common.ApplicationOpenedWithFile, func(event *application.ApplicationEvent) {
+		for _, path := range event.Context().OpenedFiles() {
+			service.queueOpenPath(path)
+		}
+	})
+	window.OnWindowEvent(events.Common.WindowFilesDropped, func(event *application.WindowEvent) {
+		for _, path := range event.Context().DroppedFiles() {
+			service.queueOpenPath(path)
+		}
+	})
+	window.Show()
+
+	if err := app.Run(); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, "运行 OFD Viewer 失败:", err)
 	}
 }

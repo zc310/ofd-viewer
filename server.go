@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -21,7 +22,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/zc310/ofd/pkg/webreader"
+	ofdreader "github.com/zc310/ofd/pkg/reader"
 )
 
 const (
@@ -742,12 +743,12 @@ type document struct {
 	id         string
 	path       string
 	data       []byte
-	pages      []webreader.PageInfo
-	readers    []*webreader.Reader
+	pages      []ofdreader.PageInfo
+	readers    []*ofdreader.Reader
 	fileSize   int64
 	modifiedAt time.Time
 
-	available chan *webreader.Reader
+	available chan *ofdreader.Reader
 	mu        sync.Mutex
 	closed    bool
 	inFlight  sync.WaitGroup
@@ -764,7 +765,7 @@ func openDocument(path string, readerCount int) (*document, error) {
 	if err != nil {
 		return nil, fmt.Errorf("读取 OFD 文件失败: %w", err)
 	}
-	reader, err := webreader.Open(data)
+	reader, err := ofdreader.Open(data)
 	if err != nil {
 		return nil, fmt.Errorf("解析 OFD 文件失败: %w", err)
 	}
@@ -793,14 +794,14 @@ func openDocument(path string, readerCount int) (*document, error) {
 		path:       path,
 		data:       data,
 		pages:      pages,
-		readers:    []*webreader.Reader{reader},
+		readers:    []*ofdreader.Reader{reader},
 		fileSize:   info.Size(),
 		modifiedAt: info.ModTime(),
-		available:  make(chan *webreader.Reader, readerCount),
+		available:  make(chan *ofdreader.Reader, readerCount),
 	}
 	document.available <- reader
 	for index := 1; index < readerCount; index++ {
-		clone, cloneErr := webreader.Open(data)
+		clone, cloneErr := ofdreader.Open(data)
 		if cloneErr != nil {
 			_ = document.Close()
 			return nil, fmt.Errorf("创建并行渲染器失败: %w", cloneErr)
@@ -825,7 +826,7 @@ func (d *document) render(ctx context.Context, page int, dpi float64) ([]byte, e
 	d.mu.Unlock()
 	defer d.inFlight.Done()
 
-	var reader *webreader.Reader
+	var reader *ofdreader.Reader
 	select {
 	case reader = <-d.available:
 	case <-ctx.Done():
@@ -844,7 +845,8 @@ func (d *document) render(ctx context.Context, page int, dpi float64) ([]byte, e
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	pngData, err := reader.RenderPage(page, webreader.RenderOptions{
+	var pngData bytes.Buffer
+	err := reader.RenderPage(ctx, &pngData, page, ofdreader.RenderOptions{
 		DPI:        dpi,
 		Background: color.White,
 	})
@@ -857,7 +859,7 @@ func (d *document) render(ctx context.Context, page int, dpi float64) ([]byte, e
 	if closed {
 		return nil, errDocumentClosed
 	}
-	return pngData, nil
+	return pngData.Bytes(), nil
 }
 
 func (d *document) text(ctx context.Context, page int, query string, search bool) (any, error) {
@@ -874,7 +876,7 @@ func (d *document) text(ctx context.Context, page int, query string, search bool
 	d.mu.Unlock()
 	defer d.inFlight.Done()
 
-	var reader *webreader.Reader
+	var reader *ofdreader.Reader
 	select {
 	case reader = <-d.available:
 	case <-ctx.Done():
@@ -885,10 +887,11 @@ func (d *document) text(ctx context.Context, page int, query string, search bool
 		return nil, err
 	}
 	if search {
-		results, err := reader.Search(query)
+		report, err := reader.Search(ctx, query, ofdreader.SearchOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("搜索文字失败: %w", err)
 		}
+		results := report.Results
 		output := make([]map[string]any, 0, len(results))
 		for _, result := range results {
 			rects := make([]map[string]any, 0, len(result.Rects))
@@ -964,7 +967,7 @@ func renderWorkerCount() int {
 	return count
 }
 
-func pagePixels(page webreader.PageInfo, dpi float64) (int, int) {
+func pagePixels(page ofdreader.PageInfo, dpi float64) (int, int) {
 	width := int(math.Round(page.Width * dpi / 25.4))
 	height := int(math.Round(page.Height * dpi / 25.4))
 	if width < 1 {
@@ -986,7 +989,7 @@ func randomToken() (string, error) {
 
 func allowedWebSocketOrigin(origin string) bool {
 	origin = strings.TrimSpace(origin)
-	if origin == "" || origin == "wails://wails" || origin == "wails://wails.localhost" {
+	if origin == "" || origin == "wails://wails" || origin == "wails://wails.localhost" || origin == "wails://localhost" {
 		return true
 	}
 	parsed, err := url.Parse(origin)

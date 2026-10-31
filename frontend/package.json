@@ -8,7 +8,7 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "@wailsio/runtime": "^3.0.0-beta.34"
+    "@wailsio/runtime": "3.0.0"
   },
   "devDependencies": {
     "esbuild": "^0.28.2"
